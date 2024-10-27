@@ -2,7 +2,7 @@ import glob
 import math
 import random
 import time
-from CardSuggestions.sparse import SparseVector
+from SparseVec import SparseVector
 from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
 from sklearn import preprocessing
@@ -15,7 +15,7 @@ import os
 
 
 def load_intersection_dict():
-    with open("CardSuggestions/intersection_dict.txt", "rb") as intersection_file:
+    with open("intersection_dict.txt", "rb") as intersection_file:
         return pickle.load(intersection_file)
 
 
@@ -24,7 +24,7 @@ def download_card_data():
     content = response.content.decode("UTF-8")
     json_content = json.loads(content)
     data = json_content["data"]
-    with open("CardSuggestions/dataset/info/card_data.txt", "wb") as pickle_file:
+    with open("dataset/info/card_data.txt", "wb") as pickle_file:
         pickle.dump(data, pickle_file)
 
 
@@ -48,12 +48,12 @@ def get_all_cards():
     for card_id in all_card_ids:
         x[card_id] = True
     all_card_ids = x
-    with open("CardSuggestions/dataset/card_list.txt", "wb") as card_file:
+    with open("dataset/card_list.txt", "wb") as card_file:
         pickle.dump(all_card_ids, card_file)
 
 
 def load_all_cards():
-    with open("CardSuggestions/dataset/card_list.txt", "rb") as card_file:
+    with open("dataset/card_list.txt", "rb") as card_file:
         card_array = pickle.load(card_file)
     return card_array
 
@@ -141,7 +141,7 @@ def use_context_to_update_index():
 
 def load_context_vectors():
     global card_id_to_context_vector
-    with open("CardSuggestions/context_vectors.txt", "rb") as pickle_file:
+    with open("context_vectors.txt", "rb") as pickle_file:
         card_id_to_context_vector = pickle.load(pickle_file)
 
 
@@ -170,7 +170,7 @@ def create_intersection_dict():
         for card_id2 in inverted_index:
             compute_intersection(card_id, card_id2)
 
-    f = open("CardSuggestions/intersection_dict.txt", "wb")
+    f = open("intersection_dict.txt", "wb")
     pickle.dump(intersection_dict, f)
     f.close()
 
@@ -612,14 +612,14 @@ def id_embedding():
 
 
 def load_model():
-    return Word2Vec.load("CardSuggestions/models/card2vec.model")
+    return Word2Vec.load("models/card2vec.model")
 
 
 def train_model():
     vector_dimension = 100
     window = 90
     model = Word2Vec(sentences=MyCorpus(), vector_size=vector_dimension, window=window, min_count=0)
-    model.save("CardSuggestions/models/card2vec.model")
+    model.save("/models/card2vec.model")
     return model
 
 
@@ -627,7 +627,7 @@ def deck_to_id_vector(deck_cards):
     return np.array(card2vec_model.get_mean_vector(deck_cards))
 
 
-DECK_DIRECTORY = "CardSuggestions/dataset/**/"
+DECK_DIRECTORY = "dataset/tournaments/"
 inverted_index = {}
 corpus = []
 cards_to_encoding = {}
@@ -642,7 +642,7 @@ card_index_to_id = {}
 
 index_decks(DECK_DIRECTORY)
 
-with open("CardSuggestions/dataset/info/card_data.txt", "rb") as file:
+with open("dataset/info/card_data.txt", "rb") as file:
     all_card_data = pickle.load(file)
 
 
@@ -687,10 +687,8 @@ for card_id in inverted_index:
 
 card2vec_model = id_embedding()
 load_context_vectors()
-#create_context_vectors()
-#use_context_to_update_index()
 
-with open("CardSuggestions/lflist.conf", "r") as file:
+with open("lflist.conf", "r") as file:
     content = file.read()
     lines = content.split("\n")
     allowed_cards = [x.split(" ")[0] for x in lines if "!" not in x and "$" not in x]

@@ -21,5 +21,5 @@ Example output:
 ![Suggestions](Images/Suggestions.png)
 
 ## Clustered Suggestions (clusters separated by the card Melffy Rabby)
-![CLustering](Images/Clustering.png)
+![Clustering](Images/Clustering.png)
 

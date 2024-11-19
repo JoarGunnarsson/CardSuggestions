@@ -12,7 +12,7 @@ Example usage can be seen in example.py, simply use
 
 This script suggests 30 cards for an example Branded deck, and divides it into clusters.
 
-Example output:
+Example output (cards visualized using a third-party program):
 
 ## Deck
 ![deck](Images/BrandedDeck.png)

@@ -1,8 +1,11 @@
-from setuptools import setup
+from setuptools import Extension, setup
 from Cython.Build import cythonize
 
+extensions = [Extension("sparse", ["sparse.pyx"])]
+
 setup(
-    name='Sparse Vector module',
-    ext_modules=cythonize("sparse.pyx"),
+    ext_modules=cythonize(extensions),
 )
+
 # python setup.py build_ext --inplace
+

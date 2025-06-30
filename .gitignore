@@ -6,3 +6,4 @@
 env
 SparseVec/*
 .idea/*
+Datasets/*

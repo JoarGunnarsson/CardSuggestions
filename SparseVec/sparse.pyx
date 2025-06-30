@@ -79,7 +79,7 @@ class SparseVector:
                 return SparseVector._multiply_vectors(self, other)
 
             return SparseVector._multiply_vectors(other, self)
-        return self.multiply_with_num(other)
+        return self._scalar_multiply(other)
 
     def __rmul__(self, other):
         if isinstance(other, SparseVector):
@@ -87,10 +87,10 @@ class SparseVector:
                 return SparseVector._multiply_vectors(self, other)
 
             return SparseVector._multiply_vectors(other, self)
-        return self.multiply_with_num(other)
+        return self._scalar_multiply(other)
 
     def __truediv__(self, other):
-        return self.multiply_with_num(1 / other)
+        return self._scalar_multiply(1 / other)
 
     def __setitem__(self, key, value):
         if not isinstance(key, int):

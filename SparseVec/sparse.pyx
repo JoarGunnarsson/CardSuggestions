@@ -46,12 +46,6 @@ class SparseVector:
             self.norm += self[key] ** 2
             self.norm = self.norm**0.5
 
-    def multiply_with_num(self, num):
-        new_vector = SparseVector()
-        for key in self.key_set:
-            new_vector[key] = self.counts[key] * num
-        return new_vector
-
     @staticmethod
     def dot(vec1, vec2):
         if len(vec1) < len(vec2):
@@ -66,6 +60,12 @@ class SparseVector:
         for key in intersection:
             dot_product += vec1[key] * vec2[key]
         return dot_product
+
+    def _scalar_multiply(self, num):
+        new_vector = SparseVector()
+        for key in self.key_set:
+            new_vector[key] = self.counts[key] * num
+        return new_vector
 
     def __add__(self, other):
         if len(self) < len(other):

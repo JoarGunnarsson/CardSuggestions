@@ -10,4 +10,16 @@ Example usage can be seen in example.py, simply use
 
 ``python example.py`` in the terminal to run.
 
-Suggests 30 cards for an example Branded deck, and tries clustering it into clusters.
+This script suggests 30 cards for an example Branded deck, and divides it into clusters.
+
+Example output (cards visualized using a third-party program):
+
+## Deck
+![deck](Images/BrandedDeck.png)
+
+## Suggestions
+![Suggestions](Images/Suggestions.png)
+
+## Clustered Suggestions (clusters separated by the card Melffy Rabby)
+![Clustering](Images/Clustering.png)
+

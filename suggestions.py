@@ -12,6 +12,7 @@ import pickle
 import requests
 import json
 import os
+import utils
 
 
 def load_intersection_dict():
@@ -81,11 +82,6 @@ def index_decks(directory):
 
 		deck_to_card_ids[i] = cards
 		for card_id in cards:
-			if card_id not in card_id_to_decks:
-				card_id_to_decks[card_id] = {i}
-			else:
-				card_id_to_decks[card_id].add(i)
-
 			if card_id not in card_id_to_index:
 				card_id_to_index[card_id] = card_index
 				card_index_to_id[card_index] = card_id
@@ -104,14 +100,6 @@ def index_decks(directory):
 
 		number_of_decks += 1
 
-	"""
-	for card_id in inverted_index.copy():
-		if len(card_id_to_decks[card_id]) < 10:
-			for deck_id in card_id_to_decks[card_id].copy():
-				deck_to_card_ids[deck_id].remove(card_id)
-			del card_id_to_decks[card_id]
-			del inverted_index[card_id]
-	"""
 	for card_id in inverted_index:
 		idf_scores[card_id] = math.log(number_of_decks / len(inverted_index[card_id]))
 
@@ -141,16 +129,20 @@ def use_context_to_update_index():
 
 def load_context_vectors():
 	global card_id_to_context_vector
-	with open("context_vectors.txt", "rb") as pickle_file:
+	with open("dataset/context_vectors.txt", "rb") as pickle_file:
 		card_id_to_context_vector = pickle.load(pickle_file)
 
 
 def create_context_vectors():
+	"""
+	Creates a vector of each card in the inverted index, based on cards that occur in the same decks.
+	That is, if card A is in the same deck as card B, card A with be incremented by 1 in the 'card B'-dimension.
+	"""
 	for i, card_id in enumerate(inverted_index):
 		if (i+1) % 1000 == 0:
 			print(i+1)
 		card_vector = SparseVector()
-		decks_containing_card = card_id_to_decks[card_id]
+		decks_containing_card = list(inverted_index[card_id].key_set)
 		for deck_id in decks_containing_card:
 			neighboring_cards = deck_to_card_ids[deck_id]
 			for neighbor in neighboring_cards:
@@ -178,18 +170,14 @@ def create_intersection_dict():
 def load_deck(file_name):
 	with open(file_name, "r") as f:
 		deck_file_lines = f.read().split("\n")
-	cards = clean_cards(deck_file_lines)
+	cards = utils.clean_cards(deck_file_lines)
 	return list(set(cards))
 
 
 def filter_deck(cards):
-	cards = clean_cards(cards)
+	cards = utils.clean_cards(cards)
 	cards = [x for x in cards if x in inverted_index]
 	return cards
-
-
-def clean_cards(cards):
-	return [x.lstrip("0") for x in cards if x != "" and "#" not in x and "!" not in x and "none" not in x]
 
 
 def cosine_similarity(p1, p2, idf_score, dot_function):
@@ -241,7 +229,11 @@ def score_similarity(x, deck_list, similarity, re_suggest):
 	return similarity[x]
 
 
-def suggest_cards(deck_list, n=10, re_suggest=False):
+def suggest_cards(deck_list, suggester, n=10, re_suggest=False):
+	card_list = filter_deck(deck_list)
+
+	scores = suggester.score(deck_list)
+	suggestions
 	return suggest_cards_knn(deck_list, n, re_suggest)
 
 
@@ -318,16 +310,15 @@ def k_means_clustering(deck_list, k=5):
 		k = len(deck_list)
 	iters = 10
 	cluster_center_cards = random.sample(deck_list, k)
-	cluster_centers = [inverted_index[center_card_id] for center_card_id in
-					   cluster_center_cards]
+	cluster_centers = [inverted_index[center_card_id] for center_card_id in cluster_center_cards]
 
 	cluster_members = []
 
 	for j in range(iters):
 		cluster_centers, cluster_members = one_k_means_iteration(deck_list, cluster_centers)
 
-	squared_distance_sum = 1 - compute_silhouette_score(deck_list, cluster_centers,
-														cluster_members)  # compute_total_cluster_variation(cluster_centers, cluster_members)
+	squared_distance_sum = 1 - compute_silhouette_score(deck_list, cluster_centers, cluster_members)
+	# compute_total_cluster_variation(cluster_centers, cluster_members)
 	## Is this better?
 	return cluster_centers, cluster_members, squared_distance_sum
 
@@ -501,23 +492,6 @@ def suggest_context(deck_cards, n=50, re_suggest=False):
 	return results
 
 
-def suggest_dot(deck_cards, n=50, re_suggest=False):
-	deck_cards = [x for x in deck_cards if x in inverted_index]
-
-	deck_vector = deck_to_id_vector(deck_cards)
-	scores = {}
-
-	for card_id in allowed_cards:
-		card_vector = cards_to_encoding[card_id]
-		scores[card_id] = np.dot(deck_vector, card_vector)
-
-	sorted_scores = allowed_cards.copy()
-	sorted_scores.sort(key=lambda x: scorer(x, scores, deck_cards, re_suggest), reverse=True)
-	results = sorted_scores[:n]
-
-	return results
-
-
 def suggest_archetype(deck_cards, n=50, re_suggest=False):
 	deck_cards = [x for x in deck_cards if x in inverted_index]
 	for card_id in deck_cards:
@@ -564,7 +538,8 @@ def suggest_prob(deck_cards, n=50, re_suggest=False):
 def compute_prob(deck_cards):
 	probabilities = []
 	for card_id in allowed_cards:
-		number_of_decks_containing_given_card = len(card_id_to_decks[card_id])
+		number_of_decks_containing_given_card = len(inverted_index[card_id].key_set)
+
 		log_prior = np.log(number_of_decks_containing_given_card+1) - np.log(len(deck_to_card_ids.keys())+1)
 
 		card_probs = []
@@ -584,9 +559,7 @@ def compute_intersection(deck_card, given_card):
 	hash_id = min(deck_card, given_card) + "," + max(deck_card, given_card)
 	if hash_id in intersection_dict:
 		return
-	decks_given = card_id_to_decks[given_card]
-	decks_this_deck_card = card_id_to_decks[deck_card]
-	counter = len(decks_given.intersection(decks_this_deck_card))
+	counter = len(inverted_index[deck_card].key_set.intersection(inverted_index[given_card].key_set))
 	if counter == 0:
 		return
 	intersection_dict[hash_id] = counter
@@ -596,7 +569,8 @@ def get_intersection(deck_card, given_card):
 	hash_id = min(deck_card, given_card) + "," + max(deck_card, given_card)
 	if hash_id not in intersection_dict:
 		return 0
-	return intersection_dict[hash_id]
+	# Simply returning intersection_dict[hash_id] is slightly faster.
+	return len(inverted_index[deck_card].key_set.intersection(inverted_index[given_card].key_set))
 
 
 def scorer(card_id, scores, deck_list, re_suggest):
@@ -605,34 +579,10 @@ def scorer(card_id, scores, deck_list, re_suggest):
 	return scores[card_id]
 
 
-def id_embedding():
-	model = load_model().wv
-	for card_id in inverted_index:
-		cards_to_encoding[card_id] = np.array(model[card_id])
-	return model
-
-
-def load_model():
-	return Word2Vec.load("models/card2vec.model")
-
-
-def train_model():
-	vector_dimension = 100
-	window = 90
-	model = Word2Vec(sentences=MyCorpus(), vector_size=vector_dimension, window=window, min_count=0)
-	model.save("/models/card2vec.model")
-	return model
-
-
-def deck_to_id_vector(deck_cards):
-	return np.array(card2vec_model.get_mean_vector(deck_cards))
-
-
 DECK_DIRECTORY = "dataset/tournaments/"
 inverted_index = {}
 corpus = []
 cards_to_encoding = {}
-card_id_to_decks = {}
 deck_to_card_ids = {}
 card_id_to_name = {}
 intersection_dict = load_intersection_dict()
@@ -686,10 +636,9 @@ for card_id in inverted_index:
 	card_id_to_archetype_vector[card_id] = archetype_vector
 
 
-card2vec_model = id_embedding()
 load_context_vectors()
 
-with open("lflist.conf", "r") as file:
+with open("dataset/lflist.conf", "r") as file:
 	content = file.read()
 	lines = content.split("\n")
 	allowed_cards = [x.split(" ")[0] for x in lines if "!" not in x and "$" not in x]

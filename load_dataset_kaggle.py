@@ -17,7 +17,7 @@ master_duel_formats = ["Master Duel Decks", "Tournament Meta Decks OCG", "Tourna
 other_formats = ["Structure Decks", "Domain Format Decks", "Edison Format Decks", "Theorycrafting Decks",
                  "Trinity Format Decks", 'Progression Series', 'Common Charity Decks', 'Goat Format Decks']
 
-dataset_format = "other"
+dataset_format = "meta"
 
 if dataset_format == "meta":
     allowed_formats = meta_formats
@@ -41,6 +41,7 @@ elif dataset_format == "other":
 
 
 def load_files():
+    # TODO: Re-write this function, it's way too ugly and complicated.
     deck_number = 1
     for file_name in glob.glob("archive/*.csv"):
         with open(file_name, 'r') as file:
@@ -57,6 +58,7 @@ def load_files():
                 extra_deck = string_list_to_list_of_strings(lines[7])
                 side_deck = string_list_to_list_of_strings(lines[8])
                 deck_string = "#main\n" + "\n".join(main_deck) + "\n#extra\n" + "\n".join(extra_deck) + "\n!side\n" + "\n".join(side_deck)
+                # TODO: If directory does not exist, create it.
                 with open("dataset/" + folder_name + str(deck_number) + ".ydk", "w") as deck_file:
                     deck_file.write(deck_string)
                 deck_number += 1

@@ -67,6 +67,7 @@ class Corpus:
 
 
 def generate_dataset(directory, dataset_name):
+	# TODO: This needs directory to end in /, fix.
 	list_of_decks = []
 	for i, file_name in enumerate(glob.glob(f"{directory}*.ydk", recursive=True)):
 		if (i + 1) % 1000 == 0:

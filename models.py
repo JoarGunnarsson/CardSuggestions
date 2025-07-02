@@ -5,6 +5,29 @@ from SparseVec import SparseVector
 from gensim.models import Word2Vec
 
 
+class EmbeddingModel:
+	"""
+	Base class responsible for handling deck and card embeddings.
+	"""
+	def get_card_embedding(self, card_id):
+		"""
+		Virtual method: Computes and returns the embedding corresponding to a card.
+		"""
+		pass
+
+	def get_deck_embedding(self, card_list):
+		"""
+		Virtual method: Computes and returns the embedding corresponding to a deck.
+		"""
+		pass
+
+	def dot(self, a, b):
+		"""
+		Virtual method: Computes the dot-product of two embedding vectors and returns it.
+		"""
+		pass
+
+
 class Model:
 	"""
 	Base class for converting card ids to vectors.
@@ -27,12 +50,6 @@ class Model:
 		Virtual method: Returns the idf score of a card.
 		"""
 
-	def get_vector_class(self):
-		"""
-		Virtual method: Returns the class the model uses for vectors.
-		"""
-		pass
-
 	def get_dot_function(self):
 		return self.dot
 
@@ -44,13 +61,45 @@ class Model:
 		pass
 
 
+class CFEmbedding(EmbeddingModel):
+	def __init__(self, index):
+		self.index = index
+
+	def get_card_embedding(self, card_id):
+		return self.index[card_id]
+
+	def get_deck_embedding(self, card_list):
+		deck_vector = SparseVector()
+		valid_cards = 0
+		for card_id in card_list:
+			if card_id not in self.index:
+				continue
+			deck_vector = deck_vector + self.get_card_embedding(card_id)
+			valid_cards += 1
+		deck_vector = deck_vector / valid_cards
+		return deck_vector
+
+	def dot(self, a, b):
+		return SparseVector.dot(a, b)
+
+class Card2VecEmbedding(EmbeddingModel):
+	pass
+
+
+class Suggester:
+	pass
+
+
+class SuggestKNN(Suggester):
+	pass
+
+
 class CFModel(Model):
 	"""
 	Model using SparseVectors and an inverted index as the embedding vectors.
 	"""
 	def __init__(self, index):
 		self.index = index
-		pass
 
 	def mean_vector(self, card_list):
 		deck_vector = SparseVector()
@@ -66,9 +115,6 @@ class CFModel(Model):
 
 	def get_idf_score(self, card_id):
 		return self.index.idf_scores[card_id]
-
-	def get_vector_class(self):
-		return SparseVector
 
 	@staticmethod
 	def dot(a, b):
@@ -114,9 +160,6 @@ class Card2VecModel(Model):
 
 	def get_idf_score(self, card_id):
 		return self.index.idf_scores[card_id]
-
-	def get_vector_class(self):
-		return SparseVector
 
 	def get_dot_function(self):
 		return self.dot

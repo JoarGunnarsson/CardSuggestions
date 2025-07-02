@@ -137,7 +137,7 @@ class Card2VecModel(Model):
 		# TODO: Needs index too (or idf score at least).
 		self.corpus = corpus
 		self.index = index
-		if os.path.isdir(model_path):
+		if os.path.exists(model_path):
 			self.model = self._load_model(model_path)
 		else:
 			self.model = self._train_model(model_path)
